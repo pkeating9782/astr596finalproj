@@ -15,10 +15,8 @@ def main():
     G = 1.0
     eps2 = (0.1 * a / N**(1/3))**2  # ~10% of mean interparticle spacing
 
-    # Generate initial conditions
     masses, positions, velocities = IMFPlum(key, N, a=a, G=G)
 
-    # Check initial virial ratio
     K_init, W_init, E_init = total_energy(positions, velocities, masses, G, eps2)
     Q_init = virial_ratio(K_init, W_init)
     print(f"Initial virial ratio: {Q_init:.4f}")
