@@ -7,18 +7,22 @@ from jax_nbody.samplers import IMFPlum
 from jax_nbody.integrators import integrator
 from jax_nbody.diagnostics import total_energy, virial_ratio
 
-# Test parameters
-key = jax.random.PRNGKey(42)
-N = 200
-a = 100.0  # AU
-G = 1.0
-eps2 = (0.1 * a / N**(1/3))**2  # ~10% of mean interparticle spacing
+def main():
+    # Test parameters
+    key = jax.random.PRNGKey(42)
+    N = 200
+    a = 100.0  # AU
+    G = 1.0
+    eps2 = (0.1 * a / N**(1/3))**2  # ~10% of mean interparticle spacing
 
-# Generate initial conditions
-masses, positions, velocities = IMFPlum(key, N, a=a, G=G)
+    # Generate initial conditions
+    masses, positions, velocities = IMFPlum(key, N, a=a, G=G)
 
-# Check initial virial ratio
-K_init, W_init, E_init = total_energy(positions, velocities, masses, G, eps2)
-Q_init = virial_ratio(K_init, W_init)
-print(f"Initial virial ratio: {Q_init:.4f}")
-print(f"Initial energy: {E_init:.6f}")
+    # Check initial virial ratio
+    K_init, W_init, E_init = total_energy(positions, velocities, masses, G, eps2)
+    Q_init = virial_ratio(K_init, W_init)
+    print(f"Initial virial ratio: {Q_init:.4f}")
+    print(f"Initial energy: {E_init:.6f}")
+
+if __name__ == '__main__':
+    main()
