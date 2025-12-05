@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from jax_nbody.samplers import IMFPlum
 from jax_nbody.integrators import integrator
 from jax_nbody.diagnostics import total_energy
-from src.nbody_emulator.utils import compute_crossing_time
+from src.nbody_emulator import utils
 
 # Fixed parameters for testing
 key = jax.random.PRNGKey(42)
@@ -31,7 +31,7 @@ print(f"Initial energy: {E_init:.6f}")
 
 # Compute crossing time and simulation duration
 M_total = jnp.sum(masses)
-t_cross = compute_crossing_time(a, M_total, G)
+t_cross = utils.compute_crossing_time(a, M_total, G)
 t_final = 10 * t_cross
 print(f"Crossing time: {t_cross:.2f}")
 print(f"Final time (10 t_cross): {t_final:.2f}")
