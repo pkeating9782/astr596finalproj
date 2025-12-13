@@ -6,7 +6,9 @@ import jax_nbody
 from jax_nbody.samplers import IMFPlum
 from jax_nbody.integrators import integrator
 from jax_nbody.diagnostics import total_energy, virial_ratio
+jax.config.update("jax_enable_x64", True)
 
+@jax.jit
 def test_package():
     # Test parameters
     key = jax.random.PRNGKey(42)

@@ -7,6 +7,7 @@ from jax_nbody.samplers import IMFPlum
 from jax_nbody.integrators import integrator
 from jax_nbody.diagnostics import total_energy
 from src.nbody_emulator import utils
+jax.config.update("jax_enable_x64", True)
 
 # Fixed parameters for testing
 key = jax.random.PRNGKey(42)
