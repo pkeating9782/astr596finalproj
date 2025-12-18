@@ -24,7 +24,7 @@ np.savetxt('outputs/data/train_params.csv', train, delimiter=',',
 # Load parameters
 train_params = np.load('outputs/data/train_params.npy')
 
-results={}
+results=[]
 # Loop through each parameter set
 for i, (Q0, a) in enumerate(train_params):
     print(f"Simulation {i+1}/{len(train_params)}: Q0={Q0:.3f}, a={a:.1f}")
@@ -56,7 +56,22 @@ for i, (Q0, a) in enumerate(train_params):
     stats = utils.compute_all_summary_stats(positions1, velocities1, masses1, G=1.0, eps2=e2)
     
     # Save results
-    results.update({'Q0': Q0, 'a': a, **stats})
+    results.append({'Q0': Q0, 'a': a, **stats})
 
     # Check good values
-    print(utils.sanity_check_summary_stats(results))
+    # Sanity check
+    check = utils.sanity_check_summary_stats(stats)
+    print(f"  f_bound={stats['f_bound']:.3f}, sigma_v={stats['sigma_v']:.3f}, r_h={stats['r_h']:.1f}")
+    if not check['in_range']:
+        print(f"  WARNING: {check['warnings']}")
+    print()
+
+    # Convert to arrays
+    train_outputs = np.array([
+        [r['f_bound'], r['sigma_v'], r['r_h']] 
+        for r in results])
+
+    # Save outputs
+    np.save('outputs/data/train_outputs.npy', train_outputs)
+    np.savetxt('outputs/data/train_outputs.csv', train_outputs, delimiter=',',
+            header='f_bound,sigma_v,r_h', comments='')

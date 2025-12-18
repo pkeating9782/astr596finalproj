@@ -4,6 +4,79 @@ import jax
 import jax.numpy as jnp
 jax.config.update("jax_enable_x64", True)
 
+class Normalizer:
+    """
+    Handles normalization for inputs/outputs
+    """
+    def __init__(self, mean=None, std=None):
+        """
+        Initialize with pre-computed statistics.
+        
+        Args:
+            mean: array of means (compute from training data if None)
+            std: array of standard deviations
+        """
+        self.mean = mean
+        self.std = std
+    
+    def fit(self, data):
+        """
+        Compute normalization statistics from training data.
+        
+        Args:
+            data: (N, d) array where N is number of samples, d is dimension
+        
+        Returns:
+            self (for method chaining)
+        """
+        self.mean = jnp.mean(data, axis=0)
+        self.std = jnp.std(data, axis=0)
+        
+        # Prevent division by zero 
+        self.std = jnp.where(self.std < 1e-10, 1.0, self.std)
+        
+        return self
+    
+    def normalize(self, data):
+        """
+        Transform data to zero mean, unit variance.
+        
+        Args:
+            data: array to normalize (any shape, last dim should match mean/std)
+        
+        Returns:
+            normalized data: (x - mu) / sigma
+        """
+        if self.mean is None or self.std is None:
+            raise ValueError("Must call fit() before normalize()")
+        
+        return (data - self.mean) / self.std
+    
+    def denormalize(self, normalized_data):
+        """
+        Transform normalized data back to original scale.
+        
+        Args:
+            normalized_data: normalized array
+        
+        Returns:
+            denormalized data: x_denom * sigma + mu
+        """
+        if self.mean is None or self.std is None:
+            raise ValueError("Must call fit() before denormalize()")
+        
+        return normalized_data * self.std + self.mean
+    
+    def save(self, filepath):
+        """Save normalization statistics to disk."""
+        jnp.savez(filepath, mean=self.mean, std=self.std)
+    
+    @classmethod
+    def load(cls, filepath):
+        """Load normalization statistics from disk."""
+        data = jnp.load(filepath)
+        return cls(mean=data['mean'], std=data['std'])
+
 @jax.jit
 def compute_crossing_time(a, M_total, G=1.0):
     """
