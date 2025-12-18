@@ -175,25 +175,20 @@ def predict_ensemble(models, x):
         mean: (N, 3) or (3,) mean predictions
         std: (N, 3) or (3,) standard deviations
     """
-    # Handle single input vs batch
     single_input = (x.ndim == 1)
     if single_input:
-        x = x[None, :]  # Add batch dimension
+        x = x[None, :]
     
-    # Get predictions from all models
     predictions = []
     for model in models:
         pred = jax.vmap(model)(x)
         predictions.append(pred)
     
-    # Stack predictions: (n_models, N, 3)
     predictions = jnp.array(predictions)
     
-    # Compute statistics
     mean = jnp.mean(predictions, axis=0)
     std = jnp.std(predictions, axis=0, ddof=1)
-    
-    # Remove batch dimension if input was single
+
     if single_input:
         mean = mean[0]
         std = std[0]
