@@ -1,4 +1,4 @@
-# test_emulator.py
+# eval_emulator.py
 
 import jax
 import jax.numpy as jnp
