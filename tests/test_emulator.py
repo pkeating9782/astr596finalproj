@@ -197,15 +197,274 @@ for i, name in enumerate(output_names):
     print(f"{name:<15} {mean_unc:<15.4f} {min_unc:<15.4f} {max_unc:<15.4f}")
 
 # ============================================
+# FIGURE 4: UNCERTAINTY SLICE (μ ± 2σ)
+# ============================================
+print("\n" + "="*60)
+print("UNCERTAINTY BEHAVIOR ANALYSIS")
+print("="*60)
+
+# Create a 1D slice through parameter space
+# Fix a=125 AU (middle of range), vary Q0
+print("\nGenerating 1D slice predictions...")
+
+a_fixed = 125.0  # Middle of a range [50, 200]
+Q0_values = np.linspace(0.5, 1.5, 100)  # Dense sampling
+
+# Create input array: (N, 2) where N=100
+slice_inputs = np.column_stack([Q0_values, np.full_like(Q0_values, a_fixed)])
+
+# Normalize inputs
+slice_inputs_norm = input_normalizer.normalize(slice_inputs)
+
+# Get ensemble predictions
+mean_slice_norm, std_slice_norm = emulator.predict_ensemble(models, slice_inputs_norm)
+
+# Denormalize
+mean_slice = output_normalizer.denormalize(mean_slice_norm)
+std_slice = std_slice_norm * output_normalizer.std  # Scale uncertainty
+
+print(f"Generated predictions for {len(Q0_values)} points along Q0 ∈ [0.5, 1.5] at a={a_fixed} AU")
+
+# Create uncertainty plots
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+output_labels = [
+    r'$f_{\rm bound}$',
+    r'$\sigma_v$ [AU/yr]',
+    r'$r_h$ [AU]'
+]
+
+for i, (ax, name, label) in enumerate(zip(axes, output_names, output_labels)):
+    mean = mean_slice[:, i]
+    std = std_slice[:, i]
+    
+    # Plot mean prediction
+    ax.plot(Q0_values, mean, 'b-', linewidth=2.5, label='Ensemble mean')
+    
+    # Plot uncertainty bands (± 2σ)
+    ax.fill_between(
+        Q0_values,
+        mean - 2*std,
+        mean + 2*std,
+        alpha=0.3,
+        color='blue',
+        label=r'$\pm 2\sigma$ uncertainty'
+    )
+    
+    # Overlay training data points at this a value
+    # Find training points near a=125 (within ±15 AU)
+    mask_train = np.abs(test_params[:, 1] - a_fixed) < 15.0
+    train_Q0_nearby = test_params[mask_train, 0]
+    
+    # Mark approximate locations of training data
+    if len(train_Q0_nearby) > 0:
+        y_min, y_max = ax.get_ylim()
+        for q0 in train_Q0_nearby:
+            ax.axvline(q0, color='red', alpha=0.4, linestyle='--', linewidth=1.5)
+        
+        # Add legend entry for training data markers (only once)
+        if i == 0:
+            ax.axvline(train_Q0_nearby[0], color='red', alpha=0.4, linestyle='--', 
+                      linewidth=1.5, label=f'Test data near $a={a_fixed}$')
+    
+    # Formatting
+    ax.set_xlabel(r'Initial Virial Ratio $Q_0$', fontsize=13)
+    ax.set_ylabel(f'{label}', fontsize=13)
+    ax.set_title(f'{name} (at $a={a_fixed}$ AU)', fontsize=12, fontweight='bold')
+    ax.legend(fontsize=10, loc='best')
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim(0.5, 1.5)
+
+plt.tight_layout()
+plt.savefig('outputs/figures/uncertainty_slice.png', dpi=150, bbox_inches='tight')
+print("\n✓ Figure 4 saved to outputs/figures/uncertainty_slice.png")
+plt.show()
+
+# ============================================
+# EDGE BEHAVIOR ANALYSIS
+# ============================================
+print("\n" + "="*60)
+print("EDGE BEHAVIOR ANALYSIS")
+print("="*60)
+
+# Define edge regions and center region
+Q0_edges = [(0.5, 0.6), (1.4, 1.5)]  # Low and high edges
+Q0_center = (0.9, 1.1)
+
+a_edges = [(50, 70), (180, 200)]
+a_center = (115, 135)
+
+def classify_point(Q0, a):
+    """Classify if point is in edge or center region."""
+    Q0_is_edge = any(low <= Q0 <= high for low, high in Q0_edges)
+    a_is_edge = any(low <= a <= high for low, high in a_edges)
+    
+    Q0_is_center = Q0_center[0] <= Q0 <= Q0_center[1]
+    a_is_center = a_center[0] <= a <= a_center[1]
+    
+    if (Q0_is_edge or a_is_edge):
+        return 'edge'
+    elif (Q0_is_center and a_is_center):
+        return 'center'
+    else:
+        return 'intermediate'
+
+# Classify all test points
+classifications = [classify_point(Q0, a) for Q0, a in test_params]
+
+print(f"\nTest set distribution:")
+print(f"  Center region:       {classifications.count('center')} points")
+print(f"  Intermediate region: {classifications.count('intermediate')} points")
+print(f"  Edge region:         {classifications.count('edge')} points")
+
+# Compute uncertainty statistics by region
+print("\n" + "-"*70)
+print("UNCERTAINTY BY REGION")
+print("-"*70)
+print(f"{'Region':<15} {'f_bound σ':<15} {'sigma_v σ':<15} {'r_h σ':<15} {'Count':<10}")
+print("-"*70)
+
+for region in ['center', 'intermediate', 'edge']:
+    mask = np.array([c == region for c in classifications])
+    if np.any(mask):
+        mean_uncertainties = np.mean(std_pred[mask], axis=0)
+        count = np.sum(mask)
+        print(f"{region:<15} {mean_uncertainties[0]:<15.4f} {mean_uncertainties[1]:<15.4f} "
+              f"{mean_uncertainties[2]:<15.4f} {count:<10}")
+
+print("-"*70)
+
+# Compute prediction errors by region
+print("\n" + "-"*70)
+print("PREDICTION ERRORS BY REGION")
+print("-"*70)
+print(f"{'Region':<15} {'f_bound RMSE':<15} {'sigma_v RMSE':<15} {'r_h RMSE':<15}")
+print("-"*70)
+
+for region in ['center', 'intermediate', 'edge']:
+    mask = np.array([c == region for c in classifications])
+    if np.any(mask):
+        rmse = np.sqrt(np.mean((mean_pred[mask] - test_outputs[mask])**2, axis=0))
+        print(f"{region:<15} {rmse[0]:<15.4f} {rmse[1]:<15.4f} {rmse[2]:<15.4f}")
+
+print("-"*70)
+
+# ============================================
+# PARAMETER SPACE COVERAGE VISUALIZATION
+# ============================================
+print("\n" + "="*60)
+print("PARAMETER SPACE COVERAGE")
+print("="*60)
+
+# Load training params for visualization
+train_params_full = np.load('outputs/data/train_params.npy')
+
+fig, ax = plt.subplots(figsize=(10, 7))
+
+# Plot training data
+ax.scatter(train_params_full[:, 0], train_params_full[:, 1], 
+           c='blue', s=60, alpha=0.5, label='Training data', 
+           edgecolors='navy', linewidths=0.8, zorder=2)
+
+# Plot test data by classification
+region_colors = {'center': 'green', 'intermediate': 'orange', 'edge': 'red'}
+region_markers = {'center': 'o', 'intermediate': 's', 'edge': '^'}
+
+for region in ['center', 'intermediate', 'edge']:
+    mask = np.array([c == region for c in classifications])
+    if np.any(mask):
+        ax.scatter(test_params[mask, 0], test_params[mask, 1],
+                  c=region_colors[region], s=120, marker=region_markers[region], 
+                  alpha=0.9, label=f'Test ({region})', 
+                  edgecolors='black', linewidths=1.2, zorder=3)
+
+# Mark the slice line
+ax.axhline(a_fixed, color='purple', linestyle='--', linewidth=2.5, 
+          label=f'1D slice at $a={a_fixed}$ AU', zorder=1)
+
+# Draw edge region boundaries
+ax.axvline(Q0_edges[0][1], color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+ax.axvline(Q0_edges[1][0], color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+ax.axhline(a_edges[0][1], color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+ax.axhline(a_edges[1][0], color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+
+# Formatting
+ax.set_xlabel(r'Initial Virial Ratio $Q_0$', fontsize=14, fontweight='bold')
+ax.set_ylabel(r'Plummer Scale Radius $a$ [AU]', fontsize=14, fontweight='bold')
+ax.set_title('Parameter Space Coverage & Test Set Classification', fontsize=15, fontweight='bold')
+ax.legend(fontsize=10, loc='best', framealpha=0.9)
+ax.grid(True, alpha=0.3)
+ax.set_xlim(0.45, 1.55)
+ax.set_ylim(45, 205)
+
+plt.tight_layout()
+plt.savefig('outputs/figures/parameter_space_coverage.png', dpi=150, bbox_inches='tight')
+print("\n✓ Parameter space coverage plot saved to outputs/figures/parameter_space_coverage.png")
+plt.show()
+
+# ============================================
+# UNCERTAINTY INTERPRETATION
+# ============================================
+print("\n" + "="*60)
+print("UNCERTAINTY INTERPRETATION")
+print("="*60)
+
+# Calculate ratio of edge to center uncertainty
+center_mask = np.array([c == 'center' for c in classifications])
+edge_mask = np.array([c == 'edge' for c in classifications])
+
+if np.any(center_mask) and np.any(edge_mask):
+    center_unc = np.mean(std_pred[center_mask], axis=0)
+    edge_unc = np.mean(std_pred[edge_mask], axis=0)
+    
+    print("\nUncertainty ratios (Edge / Center):")
+    print("-"*40)
+    for i, name in enumerate(output_names):
+        ratio = edge_unc[i] / center_unc[i] if center_unc[i] > 0 else float('inf')
+        print(f"  {name}: {ratio:.2f}x")
+    print("-"*40)
+    
+    print("\nInterpretation:")
+    if all(edge_unc > center_unc):
+        print("  ✓ Uncertainty increases at edges (expected behavior)")
+        print("  ✓ Emulator 'knows what it doesn't know'")
+    else:
+        print("  ⚠ Some outputs show lower uncertainty at edges")
+        print("  → May need more ensemble members or training data")
+
+# ============================================
 # SUMMARY
 # ============================================
 print("\n" + "="*60)
 print("EVALUATION COMPLETE!")
 print("="*60)
-print("\nGenerated:")
+print("\nGenerated figures:")
 print("  ✓ outputs/figures/predicted_vs_true.png (Figure 3)")
 print("  ✓ outputs/figures/residuals.png")
+print("  ✓ outputs/figures/uncertainty_slice.png (Figure 4)")
+print("  ✓ outputs/figures/parameter_space_coverage.png")
+print("\nGenerated data:")
 print("  ✓ outputs/data/test_metrics.npz")
 print("\nMetrics summary:")
 for i, name in enumerate(output_names):
     print(f"  {name}: MAE={mae_values[i]:.4f}, RMSE={rmse_values[i]:.4f}")
+
+print("\n" + "="*60)
+print("KEY FINDINGS FOR RESEARCH MEMO:")
+print("="*60)
+print("\n1. ACCURACY:")
+print(f"   - Overall test set performance adequate")
+print(f"   - Check if edge regions show degraded performance")
+
+print("\n2. UNCERTAINTY QUANTIFICATION:")
+print(f"   - Ensemble spread quantifies epistemic uncertainty")
+print(f"   - Compare edge vs. center uncertainty ratios above")
+
+print("\n3. EDGE BEHAVIOR:")
+print(f"   - Monitor if predictions degrade near boundaries")
+print(f"   - Use ensemble uncertainty as extrapolation warning")
+
+print("\n4. NEXT STEPS:")
+print(f"   - Use test-set RMSE values as σ_obs for inference")
+print(f"   - Proceed to Part 4: NumPyro inference")
+print("="*60)
