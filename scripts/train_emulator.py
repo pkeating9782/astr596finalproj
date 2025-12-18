@@ -1,4 +1,4 @@
-# train_pilot_sim.py
+# train_emulator.py
 
 import jax
 import jax.numpy as jnp
