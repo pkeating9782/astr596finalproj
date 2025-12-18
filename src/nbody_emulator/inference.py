@@ -19,6 +19,9 @@ def make_model(emulator, input_normalizer, output_normalizer, sigma_obs):
         output_normalizer: Normalizer for outputs (f_bound, sigma_v, r_h)
         sigma_obs: (3,) array of observation uncertainties [sigma_f, sigma_v, sigma_r]
     """
+    # Import predict_ensemble outside model function
+    from src.nbody_emulator.emulator import predict_ensemble
+    
     def model(observed_stats):
         # Step 1: Sample from uniform priors (over training range)
         Q0 = numpyro.sample("Q0", dist.Uniform(0.5, 1.5))
@@ -31,11 +34,10 @@ def make_model(emulator, input_normalizer, output_normalizer, sigma_obs):
         # Normalize inputs using TRAINING statistics
         params_norm = input_normalizer.normalize(params)
         
-        # Get prediction from emulator
+        # Get prediction from emulator (ensemble mean only)
         if isinstance(emulator, list):
-            # Ensemble: use predict_ensemble to get mean prediction
-            from src.nbody_emulator import emulator as em_module
-            pred_norm, _ = em_module.predict_ensemble(emulator, params_norm)
+            # Ensemble: use mean prediction (ignore uncertainty during inference)
+            pred_norm, _ = predict_ensemble(emulator, params_norm)
         else:
             # Single model
             pred_norm = emulator(params_norm)
@@ -44,7 +46,6 @@ def make_model(emulator, input_normalizer, output_normalizer, sigma_obs):
         predicted_stats = output_normalizer.denormalize(pred_norm)
         
         # Step 3: Likelihood - compare predictions to observations
-        # Each output has independent Gaussian noise with σ_obs
         numpyro.sample("obs", dist.Normal(predicted_stats, sigma_obs), obs=observed_stats)
     
     return model
