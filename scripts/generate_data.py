@@ -82,9 +82,6 @@ def run_simulation_for_params(params, seed_offset=0):
 
 
 if __name__ == "__main__":
-    print("="*60)
-    print("GENERATING TRAINING AND TEST DATA")
-    print("="*60)
     
     # Generate parameter samples using LHS
     print("\nGenerating parameter samples...")
@@ -98,15 +95,7 @@ if __name__ == "__main__":
     np.savetxt('outputs/data/test_params.csv', test_params, delimiter=',',
                header='Q0,a', comments='')
     
-    print(f"Generated {len(train_params)} training parameters")
-    print(f"Generated {len(test_params)} test parameters")
-    
-    # ========================================
     # TRAINING SET SIMULATIONS
-    # ========================================
-    print("\n" + "="*60)
-    print("RUNNING TRAINING SIMULATIONS")
-    print("="*60 + "\n")
     
     train_results = run_simulation_for_params(train_params, seed_offset=0)
     
@@ -121,15 +110,7 @@ if __name__ == "__main__":
     np.savetxt('outputs/data/train_outputs.csv', train_outputs, delimiter=',',
                header='f_bound,sigma_v,r_h', comments='')
     
-    print(f"\n✓ Training data complete: {len(train_outputs)} simulations")
-    
-    # ========================================
     # TEST SET SIMULATIONS
-    # ========================================
-    print("\n" + "="*60)
-    print("RUNNING TEST SIMULATIONS")
-    print("="*60 + "\n")
-    
     # Use different seed offset for test set (important!)
     test_results = run_simulation_for_params(test_params, seed_offset=10000)
     
@@ -144,30 +125,10 @@ if __name__ == "__main__":
     np.savetxt('outputs/data/test_outputs.csv', test_outputs, delimiter=',',
                header='f_bound,sigma_v,r_h', comments='')
     
-    print(f"\n✓ Test data complete: {len(test_outputs)} simulations")
-    
-    # ========================================
     # SUMMARY
-    # ========================================
-    print("\n" + "="*60)
-    print("DATA GENERATION COMPLETE!")
-    print("="*60)
-    print(f"\nTraining set:")
-    print(f"  - {len(train_params)} parameter combinations")
-    print(f"  - Saved to outputs/data/train_params.npy")
-    print(f"  - Saved to outputs/data/train_outputs.npy")
-    
-    print(f"\nTest set:")
-    print(f"  - {len(test_params)} parameter combinations")
-    print(f"  - Saved to outputs/data/test_params.npy")
-    print(f"  - Saved to outputs/data/test_outputs.npy")
+    print("DATA GENERATION COMPLETE")
     
     print(f"\nOutput ranges:")
     print(f"  f_bound: [{train_outputs[:, 0].min():.3f}, {train_outputs[:, 0].max():.3f}]")
     print(f"  sigma_v: [{train_outputs[:, 1].min():.3f}, {train_outputs[:, 1].max():.3f}]")
     print(f"  r_h:     [{train_outputs[:, 2].min():.1f}, {train_outputs[:, 2].max():.1f}]")
-    
-    print(f"\nNext steps:")
-    print(f"  1. Verify output ranges are reasonable")
-    print(f"  2. Plot training data distribution (Part 1 deliverable)")
-    print(f"  3. Train your emulator (Part 2)")

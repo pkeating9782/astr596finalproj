@@ -86,5 +86,3 @@ for dt_factor in dt_factors:
     plt.tight_layout()
     plt.savefig(f'outputs/figures/energy_error_dt{dt_factor}.png', dpi=150)
     plt.close()
-    
-    print(f"Saved figure to outputs/figures/energy_error_dt{dt_factor}.png")

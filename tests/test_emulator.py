@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 from src.nbody_emulator import emulator, utils
 import pickle
 
-# ============================================
 # LOAD TRAINED ENSEMBLE AND NORMALIZERS
-# ============================================
 print("\nLoading trained ensemble...")
 with open('outputs/ensemble_models.pkl', 'rb') as f:
     models = pickle.load(f)
@@ -17,25 +15,14 @@ with open('outputs/ensemble_models.pkl', 'rb') as f:
 input_normalizer = utils.Normalizer.load('outputs/input_normalizer.npz')
 output_normalizer = utils.Normalizer.load('outputs/output_normalizer.npz')
 
-print(f"Loaded {len(models)} ensemble members")
-
-# ============================================
 # LOAD TEST DATA
-# ============================================
 print("\nLoading test data...")
 test_params = np.load('outputs/data/test_params.npy')
 test_outputs = np.load('outputs/data/test_outputs.npy')
 
-print(f"Test set size: {len(test_params)} simulations")
-print(f"  Input shape: {test_params.shape}")
-print(f"  Output shape: {test_outputs.shape}")
 
-# ============================================
 # EVALUATE ON ENTIRE TEST SET
-# ============================================
-print("\n" + "="*60)
 print("EVALUATING ENSEMBLE ON TEST SET")
-print("="*60)
 
 # Normalize test inputs
 x_test_norm = input_normalizer.normalize(test_params)
@@ -47,9 +34,7 @@ mean_pred_norm, std_pred_norm = emulator.predict_ensemble(models, x_test_norm)
 mean_pred = output_normalizer.denormalize(mean_pred_norm)
 std_pred = std_pred_norm * output_normalizer.std  # Scale uncertainty back
 
-# ============================================
 # COMPUTE ACCURACY METRICS
-# ============================================
 print("\nComputing accuracy metrics...")
 
 # Extract individual outputs
@@ -69,10 +54,7 @@ print(f"{'Output':<15} {'MAE':<15} {'RMSE':<15}")
 print("-"*60)
 
 for i, name in enumerate(output_names):
-    # MAE: Mean Absolute Error
     mae = np.mean(np.abs(y_true[:, i] - y_pred[:, i]))
-    
-    # RMSE: Root Mean Square Error
     rmse = np.sqrt(np.mean((y_true[:, i] - y_pred[:, i])**2))
     
     mae_values.append(mae)
@@ -89,15 +71,9 @@ metrics_dict = {
     'RMSE': rmse_values
 }
 np.savez('outputs/data/test_metrics.npz', **metrics_dict)
-print("\n✓ Metrics saved to outputs/data/test_metrics.npz")
 
-# ============================================
 # FIGURE 3: PREDICTED VS TRUE SCATTER PLOTS
-# ============================================
-print("\n" + "="*60)
 print("GENERATING PREDICTED VS. TRUE PLOTS (Figure 3)")
-print("="*60)
-
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
 output_labels = [
@@ -125,12 +101,9 @@ for i, (ax, name, label) in enumerate(zip(axes, output_names, output_labels)):
 
 plt.tight_layout()
 plt.savefig('outputs/figures/predicted_vs_true.png', dpi=150, bbox_inches='tight')
-print("\n✓ Figure 3 saved to outputs/figures/predicted_vs_true.png")
 plt.show()
 
-# ============================================
 # ADDITIONAL: RESIDUAL PLOTS
-# ============================================
 print("\nGenerating residual plots...")
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -151,15 +124,10 @@ for i, (ax, name, label) in enumerate(zip(axes, output_names, output_labels)):
 
 plt.tight_layout()
 plt.savefig('outputs/figures/residuals.png', dpi=150, bbox_inches='tight')
-print("✓ Residual plots saved to outputs/figures/residuals.png")
 plt.show()
 
-# ============================================
 # SINGLE EXAMPLE VERIFICATION
-# ============================================
-print("\n" + "="*60)
 print("SINGLE TEST CASE EXAMPLE")
-print("="*60)
 
 test_idx = 5
 x_test = test_params[test_idx]
@@ -181,12 +149,8 @@ print(f"  f_bound: {abs(mean_pred[test_idx, 0] - y_true_single[0]):.3f}")
 print(f"  sigma_v: {abs(mean_pred[test_idx, 1] - y_true_single[1]):.3f}")
 print(f"  r_h:     {abs(mean_pred[test_idx, 2] - y_true_single[2]):.1f}")
 
-# ============================================
 # UNCERTAINTY ANALYSIS
-# ============================================
-print("\n" + "="*60)
 print("UNCERTAINTY STATISTICS")
-print("="*60)
 
 print(f"\n{'Output':<15} {'Mean Unc.':<15} {'Min Unc.':<15} {'Max Unc.':<15}")
 print("-"*60)
@@ -196,12 +160,8 @@ for i, name in enumerate(output_names):
     max_unc = np.max(std_pred[:, i])
     print(f"{name:<15} {mean_unc:<15.4f} {min_unc:<15.4f} {max_unc:<15.4f}")
 
-# ============================================
 # FIGURE 4: UNCERTAINTY SLICE (μ ± 2σ)
-# ============================================
-print("\n" + "="*60)
 print("UNCERTAINTY BEHAVIOR ANALYSIS")
-print("="*60)
 
 # Create a 1D slice through parameter space
 # Fix a=125 AU (middle of range), vary Q0
@@ -223,7 +183,6 @@ mean_slice_norm, std_slice_norm = emulator.predict_ensemble(models, slice_inputs
 mean_slice = output_normalizer.denormalize(mean_slice_norm)
 std_slice = std_slice_norm * output_normalizer.std  # Scale uncertainty
 
-print(f"Generated predictions for {len(Q0_values)} points along Q0 ∈ [0.5, 1.5] at a={a_fixed} AU")
 
 # Create uncertainty plots
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
@@ -277,15 +236,10 @@ for i, (ax, name, label) in enumerate(zip(axes, output_names, output_labels)):
 
 plt.tight_layout()
 plt.savefig('outputs/figures/uncertainty_slice.png', dpi=150, bbox_inches='tight')
-print("\n✓ Figure 4 saved to outputs/figures/uncertainty_slice.png")
 plt.show()
 
-# ============================================
 # EDGE BEHAVIOR ANALYSIS
-# ============================================
-print("\n" + "="*60)
 print("EDGE BEHAVIOR ANALYSIS")
-print("="*60)
 
 # Define edge regions and center region
 Q0_edges = [(0.5, 0.6), (1.4, 1.5)]  # Low and high edges
@@ -349,12 +303,8 @@ for region in ['center', 'intermediate', 'edge']:
 
 print("-"*70)
 
-# ============================================
 # PARAMETER SPACE COVERAGE VISUALIZATION
-# ============================================
-print("\n" + "="*60)
 print("PARAMETER SPACE COVERAGE")
-print("="*60)
 
 # Load training params for visualization
 train_params_full = np.load('outputs/data/train_params.npy')
@@ -399,15 +349,10 @@ ax.set_ylim(45, 205)
 
 plt.tight_layout()
 plt.savefig('outputs/figures/parameter_space_coverage.png', dpi=150, bbox_inches='tight')
-print("\n✓ Parameter space coverage plot saved to outputs/figures/parameter_space_coverage.png")
 plt.show()
 
-# ============================================
 # UNCERTAINTY INTERPRETATION
-# ============================================
-print("\n" + "="*60)
 print("UNCERTAINTY INTERPRETATION")
-print("="*60)
 
 # Calculate ratio of edge to center uncertainty
 center_mask = np.array([c == 'center' for c in classifications])
@@ -423,48 +368,9 @@ if np.any(center_mask) and np.any(edge_mask):
         ratio = edge_unc[i] / center_unc[i] if center_unc[i] > 0 else float('inf')
         print(f"  {name}: {ratio:.2f}x")
     print("-"*40)
-    
-    print("\nInterpretation:")
-    if all(edge_unc > center_unc):
-        print("  ✓ Uncertainty increases at edges (expected behavior)")
-        print("  ✓ Emulator 'knows what it doesn't know'")
-    else:
-        print("  ⚠ Some outputs show lower uncertainty at edges")
-        print("  → May need more ensemble members or training data")
 
-# ============================================
 # SUMMARY
-# ============================================
-print("\n" + "="*60)
 print("EVALUATION COMPLETE!")
-print("="*60)
-print("\nGenerated figures:")
-print("  ✓ outputs/figures/predicted_vs_true.png (Figure 3)")
-print("  ✓ outputs/figures/residuals.png")
-print("  ✓ outputs/figures/uncertainty_slice.png (Figure 4)")
-print("  ✓ outputs/figures/parameter_space_coverage.png")
-print("\nGenerated data:")
-print("  ✓ outputs/data/test_metrics.npz")
 print("\nMetrics summary:")
 for i, name in enumerate(output_names):
     print(f"  {name}: MAE={mae_values[i]:.4f}, RMSE={rmse_values[i]:.4f}")
-
-print("\n" + "="*60)
-print("KEY FINDINGS FOR RESEARCH MEMO:")
-print("="*60)
-print("\n1. ACCURACY:")
-print(f"   - Overall test set performance adequate")
-print(f"   - Check if edge regions show degraded performance")
-
-print("\n2. UNCERTAINTY QUANTIFICATION:")
-print(f"   - Ensemble spread quantifies epistemic uncertainty")
-print(f"   - Compare edge vs. center uncertainty ratios above")
-
-print("\n3. EDGE BEHAVIOR:")
-print(f"   - Monitor if predictions degrade near boundaries")
-print(f"   - Use ensemble uncertainty as extrapolation warning")
-
-print("\n4. NEXT STEPS:")
-print(f"   - Use test-set RMSE values as σ_obs for inference")
-print(f"   - Proceed to Part 4: NumPyro inference")
-print("="*60)
