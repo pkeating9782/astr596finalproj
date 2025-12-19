@@ -88,7 +88,7 @@ if __name__ == "__main__":
     
     # Generate parameter samples using LHS
     print("\nGenerating parameter samples...")
-    train_params, test_params = data.generate_training_data(n_train=80, n_test=20)
+    train_params, test_params = data.generate_training_data(n_train=100, n_test=30)
     
     # Save parameters
     np.save('outputs/data/train_params.npy', train_params)

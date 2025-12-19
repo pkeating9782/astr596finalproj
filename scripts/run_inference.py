@@ -127,7 +127,7 @@ fig = corner.corner(
     labels=[r'$Q_0$', r'$a$ [AU]'],
     truths=[true_Q0, true_a],
     truth_color='red',
-    quantiles=[0.16, 0.5, 0.84],
+    quantiles=[0.025, 0.5, 0.975],
     show_titles=True,
     title_fmt='.3f'
 )
